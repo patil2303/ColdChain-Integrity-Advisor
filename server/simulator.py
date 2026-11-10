@@ -5,27 +5,47 @@ from typing import Dict, List
 from models import Shipment, PayloadCategory, TelemetryPoint, ExcursionEvent
 from advisory_engine import calculate_mkt, resolve_coords, fetch_driving_route
 
+# Pre-baked highway waypoints for instant startup with ZERO network latency
+DEFAULT_ROUTES = {
+    "PUNE_DELHI": [
+        [18.5204, 73.8567], [19.0760, 72.8777], [19.8762, 73.0125],
+        [20.3893, 72.9106], [21.1702, 72.8311], [21.7051, 72.9959],
+        [22.3072, 73.1812], [23.0225, 72.5714], [23.8345, 73.1124],
+        [24.5854, 73.7125], [25.7512, 74.6231], [26.9124, 75.7873],
+        [27.5612, 76.1245], [28.2145, 76.8123], [28.6139, 77.2090]
+    ],
+    "HYDERABAD_BENGALURU": [
+        [17.3850, 78.4867], [17.0124, 78.2145], [16.7388, 77.9974],
+        [16.2145, 78.0124], [15.8281, 78.0373], [15.1245, 77.8124],
+        [14.6819, 77.6006], [14.1245, 77.6541], [13.7380, 77.7289],
+        [13.2541, 77.6512], [12.9716, 77.5946]
+    ],
+    "AHMEDABAD_MUMBAI": [
+        [23.0225, 72.5714], [22.7541, 72.7812], [22.5645, 72.9289],
+        [22.3072, 73.1812], [21.9541, 73.0512], [21.7051, 72.9959],
+        [21.1702, 72.8311], [20.7541, 72.8512], [20.3893, 72.9106],
+        [19.8124, 72.8941], [19.2183, 72.9781], [19.0760, 72.8777]
+    ]
+}
+
 DATABASE: Dict[str, Shipment] = {}
 
 def init_database():
     global DATABASE
     now = datetime.now()
 
-    # Route 1: Pune (Serum Institute) to Delhi (AIIMS)
-    pune_coords = (18.5204, 73.8567)
-    delhi_coords = (28.6139, 77.2090)
-    pune_delhi_pts, dist1, _ = fetch_driving_route(pune_coords, delhi_coords)
-    
+    # Shipment 1: Serum Institute Covishield (Pune -> Delhi)
+    pts1 = DEFAULT_ROUTES["PUNE_DELHI"]
     s1_history = []
     base_t = 4.2
     for i in range(12):
         t_stamp = (now - timedelta(minutes=(12-i)*15)).strftime("%H:%M:%S")
         temp = base_t + random.uniform(-0.4, 0.4)
-        pt_idx = min(int(len(pune_delhi_pts) * (i / 30.0)), len(pune_delhi_pts) - 1)
+        pt_idx = min(int(len(pts1) * (i / 30.0)), len(pts1) - 1)
         s1_history.append(TelemetryPoint(
             timestamp=t_stamp,
-            lat=pune_delhi_pts[pt_idx][0],
-            lng=pune_delhi_pts[pt_idx][1],
+            lat=pts1[pt_idx][0],
+            lng=pts1[pt_idx][1],
             temperature=round(temp, 1),
             humidity=round(45.0 + random.uniform(-2, 2), 1),
             ambient_temp=round(34.0 + random.uniform(-1, 2), 1),
@@ -34,7 +54,7 @@ def init_database():
             battery_pct=96 - i//4
         ))
 
-    current_idx_1 = min(int(len(pune_delhi_pts) * 0.35), len(pune_delhi_pts) - 1)
+    curr_idx_1 = min(int(len(pts1) * 0.4), len(pts1) - 1)
     s1 = Shipment(
         id="SHP-SII-101",
         tracking_number="IND-VAC-9821-MH",
@@ -44,15 +64,15 @@ def init_database():
         max_temp=8.0,
         origin="Pune SII Bio-Hub, Maharashtra",
         destination="New Delhi AIIMS Central Medical Depot",
-        origin_coords=[pune_coords[0], pune_coords[1]],
-        destination_coords=[delhi_coords[0], delhi_coords[1]],
+        origin_coords=pts1[0],
+        destination_coords=pts1[-1],
         status="IN_TRANSIT",
         current_temp=s1_history[-1].temperature,
         current_humidity=s1_history[-1].humidity,
         current_ambient=s1_history[-1].ambient_temp,
         mkt_temp=calculate_mkt([p.temperature for p in s1_history]),
-        current_lat=pune_delhi_pts[current_idx_1][0],
-        current_lng=pune_delhi_pts[current_idx_1][1],
+        current_lat=pts1[curr_idx_1][0],
+        current_lng=pts1[curr_idx_1][1],
         battery_pct=94,
         door_open=False,
         refrigeration_active=True,
@@ -60,26 +80,23 @@ def init_database():
         risk_level="Low Risk",
         departure_time=(now - timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"),
         estimated_arrival=(now + timedelta(hours=14)).strftime("%Y-%m-%d %H:%M"),
-        route_waypoints=pune_delhi_pts,
+        route_waypoints=pts1,
         history=s1_history,
         excursions=[]
     )
 
-    # Route 2: Hyderabad (Bharat Biotech) to Bengaluru (Biocon)
-    hyd_coords = (17.3850, 78.4867)
-    blr_coords = (12.9716, 77.5946)
-    hyd_blr_pts, dist2, _ = fetch_driving_route(hyd_coords, blr_coords)
-    
+    # Shipment 2: Bharat Biotech Covaxin (Hyderabad -> Bengaluru)
+    pts2 = DEFAULT_ROUTES["HYDERABAD_BENGALURU"]
     s2_history = []
     base_t2 = 4.8
     for i in range(10):
         t_stamp = (now - timedelta(minutes=(10-i)*15)).strftime("%H:%M:%S")
         temp = base_t2 + random.uniform(-0.3, 0.3)
-        pt_idx = min(int(len(hyd_blr_pts) * (i / 25.0)), len(hyd_blr_pts) - 1)
+        pt_idx = min(int(len(pts2) * (i / 25.0)), len(pts2) - 1)
         s2_history.append(TelemetryPoint(
             timestamp=t_stamp,
-            lat=hyd_blr_pts[pt_idx][0],
-            lng=hyd_blr_pts[pt_idx][1],
+            lat=pts2[pt_idx][0],
+            lng=pts2[pt_idx][1],
             temperature=round(temp, 1),
             humidity=round(50.0 + random.uniform(-3, 3), 1),
             ambient_temp=round(33.5 + random.uniform(-1, 2), 1),
@@ -88,7 +105,7 @@ def init_database():
             battery_pct=98 - i//3
         ))
 
-    current_idx_2 = min(int(len(hyd_blr_pts) * 0.45), len(hyd_blr_pts) - 1)
+    curr_idx_2 = min(int(len(pts2) * 0.45), len(pts2) - 1)
     s2 = Shipment(
         id="SHP-BB-204",
         tracking_number="IND-BBX-4410-TS",
@@ -98,15 +115,15 @@ def init_database():
         max_temp=8.0,
         origin="Hyderabad Genome Valley, Telangana",
         destination="Bengaluru Biocon Cluster, Karnataka",
-        origin_coords=[hyd_coords[0], hyd_coords[1]],
-        destination_coords=[blr_coords[0], blr_coords[1]],
+        origin_coords=pts2[0],
+        destination_coords=pts2[-1],
         status="IN_TRANSIT",
         current_temp=s2_history[-1].temperature,
         current_humidity=s2_history[-1].humidity,
         current_ambient=s2_history[-1].ambient_temp,
         mkt_temp=calculate_mkt([p.temperature for p in s2_history]),
-        current_lat=hyd_blr_pts[current_idx_2][0],
-        current_lng=hyd_blr_pts[current_idx_2][1],
+        current_lat=pts2[curr_idx_2][0],
+        current_lng=pts2[curr_idx_2][1],
         battery_pct=96,
         door_open=False,
         refrigeration_active=True,
@@ -114,26 +131,23 @@ def init_database():
         risk_level="Low Risk",
         departure_time=(now - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"),
         estimated_arrival=(now + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
-        route_waypoints=hyd_blr_pts,
+        route_waypoints=pts2,
         history=s2_history,
         excursions=[]
     )
 
-    # Route 3: Ahmedabad (Zydus) to Mumbai
-    ahd_coords = (23.0225, 72.5714)
-    bom_coords = (19.0760, 72.8777)
-    ahd_bom_pts, dist3, _ = fetch_driving_route(ahd_coords, bom_coords)
-    
+    # Shipment 3: Zydus Biologics (Ahmedabad -> Mumbai)
+    pts3 = DEFAULT_ROUTES["AHMEDABAD_MUMBAI"]
     s3_history = []
     base_t3 = 5.2
     for i in range(12):
         t_stamp = (now - timedelta(minutes=(12-i)*15)).strftime("%H:%M:%S")
         temp = base_t3 + (i * 0.18) + random.uniform(-0.2, 0.2)
-        pt_idx = min(int(len(ahd_bom_pts) * (i / 20.0)), len(ahd_bom_pts) - 1)
+        pt_idx = min(int(len(pts3) * (i / 20.0)), len(pts3) - 1)
         s3_history.append(TelemetryPoint(
             timestamp=t_stamp,
-            lat=ahd_bom_pts[pt_idx][0],
-            lng=ahd_bom_pts[pt_idx][1],
+            lat=pts3[pt_idx][0],
+            lng=pts3[pt_idx][1],
             temperature=round(temp, 1),
             humidity=round(68.0 + random.uniform(-2, 2), 1),
             ambient_temp=round(38.2 + random.uniform(-1, 2), 1),
@@ -142,7 +156,7 @@ def init_database():
             battery_pct=84 - i//2
         ))
 
-    current_idx_3 = min(int(len(ahd_bom_pts) * 0.6), len(ahd_bom_pts) - 1)
+    curr_idx_3 = min(int(len(pts3) * 0.55), len(pts3) - 1)
     s3 = Shipment(
         id="SHP-ZYD-308",
         tracking_number="IND-ZYD-1198-GJ",
@@ -152,15 +166,15 @@ def init_database():
         max_temp=8.0,
         origin="Ahmedabad Biotech Hub, Gujarat",
         destination="Mumbai Central Cold Storage, Maharashtra",
-        origin_coords=[ahd_coords[0], ahd_coords[1]],
-        destination_coords=[bom_coords[0], bom_coords[1]],
+        origin_coords=pts3[0],
+        destination_coords=pts3[-1],
         status="IN_TRANSIT",
         current_temp=s3_history[-1].temperature,
         current_humidity=s3_history[-1].humidity,
         current_ambient=s3_history[-1].ambient_temp,
         mkt_temp=calculate_mkt([p.temperature for p in s3_history]),
-        current_lat=ahd_bom_pts[current_idx_3][0],
-        current_lng=ahd_bom_pts[current_idx_3][1],
+        current_lat=pts3[curr_idx_3][0],
+        current_lng=pts3[curr_idx_3][1],
         battery_pct=81,
         door_open=False,
         refrigeration_active=True,
@@ -168,7 +182,7 @@ def init_database():
         risk_level="Critical Risk",
         departure_time=(now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
         estimated_arrival=(now + timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"),
-        route_waypoints=ahd_bom_pts,
+        route_waypoints=pts3,
         history=s3_history,
         excursions=[]
     )
@@ -194,7 +208,6 @@ def create_new_shipment(origin: str, destination: str, category: PayloadCategory
     
     payload_name, min_t, max_t, init_t = specs
     
-    # If route geometry was not passed, compute it dynamically
     if not route_geometry or len(route_geometry) < 2:
         c1 = resolve_coords(origin)
         c2 = resolve_coords(destination)
@@ -258,9 +271,7 @@ def tick_simulation():
         if shipment.status == "DELIVERED":
             continue
 
-        # Advance position along route waypoints if available
         if shipment.route_waypoints and len(shipment.route_waypoints) > 1:
-            # find closest waypoint index
             min_dist = float('inf')
             closest_idx = 0
             for idx, pt in enumerate(shipment.route_waypoints):
@@ -269,12 +280,10 @@ def tick_simulation():
                     min_dist = d
                     closest_idx = idx
             
-            # Step forward
             next_idx = min(closest_idx + 1, len(shipment.route_waypoints) - 1)
             shipment.current_lat = shipment.route_waypoints[next_idx][0]
             shipment.current_lng = shipment.route_waypoints[next_idx][1]
 
-        # Thermal drift physics
         if not shipment.refrigeration_active:
             drift = 0.7 if shipment.current_temp < shipment.current_ambient else -0.2
             shipment.current_temp = round(shipment.current_temp + drift, 1)
@@ -285,7 +294,6 @@ def tick_simulation():
 
         shipment.current_ambient = round(shipment.current_ambient + random.uniform(-0.2, 0.2), 1)
 
-        # Excursion checks
         if shipment.current_temp > shipment.max_temp or shipment.current_temp < shipment.min_temp:
             shipment.status = "AT_RISK"
             if not shipment.excursions or (shipment.excursions and shipment.excursions[-1].severity != "Critical"):
