@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cold-Chain Integrity Advisory Platform | Operations Tower</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    #map { height: 380px; width: 100%; border-radius: 0.75rem; }
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/20">
+          ❄️
+        </div>
+        <div>
+          <div class="font-extrabold text-slate-900 tracking-tight text-lg flex items-center gap-2">
+            ColdChain <span class="text-blue-600">Integrity Advisor</span>
+            <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">India Operations</span>
+          </div>
+          <p class="text-xs text-slate-500">National Vaccine & Biopharma Cold-Chain Operations Tower (CDSCO / WHO GDP)</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button onclick="openAdvisoryModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+          Plan Route & Risk Advisor
+        </button>
+        <button onclick="downloadActivePdf()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition">
+          <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Audit Certificate (PDF)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Excursion Alert Banner (Hidden by default, shown when excursion occurs) -->
+    <div id="alertBanner" class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">⚠️</span>
+          <div>
+            <h4 class="text-sm font-bold text-red-800" id="alertTitle">CRITICAL TEMPERATURE EXCURSION DETECTED</h4>
+            <p class="text-xs text-red-700" id="alertDesc">Cargo temperature has exceeded the upper threshold. Re-routing advisory activated.</p>
+          </div>
+        </div>
+        <button onclick="resolveExcursion()" class="px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-100 hover:bg-red-200 border border-red-300 rounded-md transition">
+          Restore Active Cooling
+        </button>
+      </div>
+    </div>
+
+    <!-- Top Stats Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Shipments</p>
+          <p class="text-2xl font-extrabold text-slate-900 mt-1" id="statActive">3</p>
+          <span class="inline-flex items-center text-xs font-medium text-emerald-600 mt-1">● 100% GPS Streaming</span>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl">🚚</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cold Integrity Index</p>
+          <p class="text-2xl font-extrabold text-emerald-600 mt-1" id="statIntegrity">98.8%</p>
+          <span class="text-xs text-slate-500">WHO GDP Compliant</span>
+        </div>
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl">🛡️</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Selected Payload Temp</p>
+          <p class="text-2xl font-extrabold text-slate-900 mt-1" id="statTemp">4.2°C</p>
+          <span class="text-xs text-slate-500" id="statBounds">Spec: 2.0°C to 8.0°C</span>
+        </div>
+        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xl">🌡️</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mean Kinetic Temp (MKT)</p>
+          <p class="text-2xl font-extrabold text-slate-900 mt-1" id="statMkt">4.38°C</p>
+          <span class="text-xs text-slate-500">USP &lt;1151&gt; Arrhenius</span>
+        </div>
+        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl">📊</div>
+      </div>
+    </div>
+
+    <!-- Map & Live Telemetry Chart Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Interactive Transit Map (7 cols) -->
+      <div class="lg:col-span-7 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="pulse-dot"></span>
+            <h3 class="text-sm font-bold text-slate-900">Live Cold-Chain Corridor Map</h3>
+          </div>
+          <span class="text-xs text-slate-500" id="mapSub">Displaying Active Telemetry Trails</span>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Real-Time Telemetry Curve (5 cols) -->
+      <div class="lg:col-span-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-900">Live Temperature Trajectory</h3>
+            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono" id="chartDevice">SN-8921</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">Telemetry samples ingested every 60s against regulatory bands.</p>
+          <div class="h-64">
+            <canvas id="telemetryChart"></canvas>
+          </div>
+        </div>
+        <!-- Demo Stress Button -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <span class="text-xs text-slate-500">Demo Controls:</span>
+          <button id="stressBtn" onclick="triggerExcursion()" class="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition">
+            ⚡ Simulate Refrigerator Breakdown
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Shipments Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Active Monitored Shipments</h3>
+          <p class="text-xs text-slate-500">Click a shipment to switch telemetry focus and inspect route parameters.</p>
+        </div>
+        <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full">Auto-Refreshing (5s)</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+              <th class="py-3 px-4">Shipment ID</th>
+              <th class="py-3 px-4">Payload Category</th>
+              <th class="py-3 px-4">Route</th>
+              <th class="py-3 px-4">Cargo Temp</th>
+              <th class="py-3 px-4">Target Spec</th>
+              <th class="py-3 px-4">Ambient Weather</th>
+              <th class="py-3 px-4">Risk Index</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="shipmentsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Route Advisory Modal -->
+  <div id="advisoryModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" style="z-index: 99999;">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all relative">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold flex items-center gap-2">
+            <span>🗺️</span> Pre-Transit Route Climate & Risk Advisory
+          </h3>
+          <p class="text-xs text-slate-300">Model weather corridor exposure before truck departure</p>
+        </div>
+        <button onclick="closeAdvisoryModal()" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+      </div>
+      <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <!-- Quick Indian Corridors Presets -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Quick Select Indian Pharma Corridors:</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setPreset('Pune SII Bio-Hub, Maharashtra', 'New Delhi AIIMS Central Medical Depot', 'Refrigerated (2°C to 8°C)', 24)" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium rounded border border-slate-200 transition">
+              📍 Pune ➔ Delhi (NH 48)
+            </button>
+            <button type="button" onclick="setPreset('Hyderabad Genome Valley, Telangana', 'Bengaluru Biocon Cluster, Karnataka', 'Refrigerated (2°C to 8°C)', 18)" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium rounded border border-slate-200 transition">
+              📍 Hyderabad ➔ Bengaluru (NH 44)
+            </button>
+            <button type="button" onclick="setPreset('Ahmedabad Biotech Hub, Gujarat', 'Mumbai Central Cold Storage, Maharashtra', 'Frozen (-25°C to -15°C)', 14)" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium rounded border border-slate-200 transition">
+              📍 Ahmedabad ➔ Mumbai
+            </button>
+            <button type="button" onclick="setPreset('New Delhi AIIMS Central Medical Depot', 'Kolkata Eastern Regional Depo, West Bengal', 'Refrigerated (2°C to 8°C)', 28)" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium rounded border border-slate-200 transition">
+              📍 Delhi ➔ Kolkata (NH 19)
+            </button>
+            <button type="button" onclick="setPreset('Mumbai Central Cold Storage, Maharashtra', 'Chennai TNMSC Central Depot, Tamil Nadu', 'Refrigerated (2°C to 8°C)', 26)" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium rounded border border-slate-200 transition">
+              📍 Mumbai ➔ Chennai (NH 48)
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Origin Pharma Hub</label>
+            <input type="text" id="advOrigin" value="Pune SII Bio-Hub, Maharashtra" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Destination Depo / Hospital</label>
+            <input type="text" id="advDest" value="New Delhi AIIMS Central Medical Depot" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Payload Category</label>
+          <select id="advCategory" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Refrigerated (2°C to 8°C)">Refrigerated (2°C to 8°C) — Vaccines & Biologics</option>
+            <option value="Ultra-Cold (-80°C to -60°C)">Ultra-Cold (-80°C to -60°C) — mRNA & Cell Therapy</option>
+            <option value="Frozen (-25°C to -15°C)">Frozen (-25°C to -15°C) — Plasma & Diagnostics</option>
+            <option value="Controlled Room Temp (15°C to 25°C)">Controlled Room Temp (15°C to 25°C) — Standard Pharma</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Insulation Capacity Rating (Passive Hours)</label>
+          <input type="number" id="advInsulation" value="24" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <button id="calcBtn" onclick="calculateAdvisory()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs shadow-md transition flex items-center justify-center gap-2">
+          <span>Run Route Climate Simulation</span>
+        </button>
+
+        <!-- Advisory Result Container -->
+        <div id="advResult" class="hidden mt-4 p-4 rounded-xl border space-y-3 bg-slate-50 border-slate-200">
+          <div class="flex items-center justify-between border-b pb-2">
+            <div>
+              <span class="text-xs uppercase tracking-wider font-bold text-slate-500">Route Risk Score</span>
+              <div class="text-2xl font-extrabold" id="resScore">78 / 100</div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold" id="resBadge">Critical Risk</span>
+          </div>
+          <p class="text-xs text-slate-700 leading-relaxed font-medium" id="resRec"></p>
+          <div class="text-xs text-slate-600 grid grid-cols-2 gap-2 border-t pt-2">
+            <div><strong>Corridor Max Ambient:</strong> <span id="resAmbient"></span></div>
+            <div><strong>Suggested Window:</strong> <span id="resWindow"></span></div>
+          </div>
+          <div class="text-xs text-slate-600 border-t pt-2">
+            <strong>Recommended Cold Storage Checkpoints:</strong>
+            <ul id="resCheckpoints" class="list-disc pl-4 text-[11px] text-slate-600 mt-1 space-y-0.5"></ul>
+          </div>
+          <div class="pt-2">
+            <button onclick="dispatchNewShipment()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-md transition flex items-center justify-center gap-2">
+              <span>🚀 Dispatch Shipment & Track Live on Map</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+          <p class="text-xs text-slate-700 leading-relaxed" id="resRec"></p>
+          <div class="text-xs text-slate-600 border-t pt-2 space-y-1">
+            <p><strong>Suggested Departure:</strong> <span id="resWindow"></span></p>
+            <p><strong>Corridor Ambient Peak:</strong> <span id="resAmbient"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeShipmentId = "SHP-SII-101";
+    let map, markers = {}, polylineLayer, originMarker, destMarker;
+    let telemetryChart;
+
+    function setPreset(orig, dest, cat, hours) {
+      document.getElementById('advOrigin').value = orig;
+      document.getElementById('advDest').value = dest;
+      document.getElementById('advCategory').value = cat;
+      document.getElementById('advInsulation').value = hours;
+    }
+
+    // Initialize Leaflet Map centered on India
+    function initMap() {
+      map = L.map('map').setView([21.5, 78.9], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+
+    // Initialize Chart.js
+    function initChart() {
+      const ctx = document.getElementById('telemetryChart').getContext('2d');
+      telemetryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Cargo Temp (°C)',
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.08)',
+              data: [],
+              borderWidth: 2.2,
+              tension: 0.3,
+              fill: true
+            },
+            {
+              label: 'Ambient Weather (°C)',
+              borderColor: '#94a3b8',
+              borderDash: [5, 5],
+              data: [],
+              borderWidth: 1.5,
+              tension: 0.2,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+          },
+          scales: {
+            x: { ticks: { font: { size: 9 } } },
+            y: { ticks: { font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    // Fetch and render data
+    async function loadData() {
+      try {
+        const res = await fetch('/api/shipments');
+        const shipments = await res.json();
+        renderTable(shipments);
+
+        const current = shipments.find(s => s.id === activeShipmentId) || shipments[0];
+        if (current) {
+          updateActiveShipmentUI(current);
+        }
+      } catch (e) {
+        console.error("Failed to load telemetry:", e);
+      }
+    }
+
+    function renderTable(shipments) {
+      const tbody = document.getElementById('shipmentsTableBody');
+      tbody.innerHTML = '';
+
+      shipments.forEach(s => {
+        const isSelected = s.id === activeShipmentId;
+        const statusClass = s.status === 'AT_RISK' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800';
+        const riskClass = s.risk_score > 60 ? 'text-red-600' : (s.risk_score > 35 ? 'text-amber-600' : 'text-emerald-600');
+
+        const tr = document.createElement('tr');
+        tr.className = `cursor-pointer transition hover:bg-slate-50 ${isSelected ? 'bg-blue-50/70 font-semibold' : ''}`;
+        tr.onclick = () => selectShipment(s.id);
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono font-bold text-blue-700">${s.id}</td>
+          <td class="py-3 px-4"><div class="font-medium text-slate-900">${s.payload_name}</div><span class="text-[10px] text-slate-500">${s.category}</span></td>
+          <td class="py-3 px-4">${s.origin.split(',')[0]} → ${s.destination.split(',')[0]}</td>
+          <td class="py-3 px-4 text-sm font-bold ${s.current_temp > s.max_temp || s.current_temp < s.min_temp ? 'text-red-600' : 'text-slate-900'}">${s.current_temp}°C</td>
+          <td class="py-3 px-4 font-mono">${s.min_temp}°C to ${s.max_temp}°C</td>
+          <td class="py-3 px-4 text-slate-500">${s.current_ambient}°C</td>
+          <td class="py-3 px-4 font-bold ${riskClass}">${s.risk_score} / 100</td>
+          <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass}">${s.status}</span></td>
+          <td class="py-3 px-4 text-right">
+            <a href="/api/shipments/${s.id}/audit-pdf" target="_blank" class="px-2.5 py-1 text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 rounded hover:bg-blue-50">PDF Cert</a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        // Update map marker
+        if (!markers[s.id]) {
+          const marker = L.marker([s.current_lat, s.current_lng]).addTo(map);
+          marker.bindPopup(`<b>${s.payload_name}</b><br/>Temp: ${s.current_temp}°C<br/>Status: ${s.status}`);
+          markers[s.id] = marker;
+        } else {
+          markers[s.id].setLatLng([s.current_lat, s.current_lng]);
+          markers[s.id].setPopupContent(`<b>${s.payload_name}</b><br/>Temp: ${s.current_temp}°C<br/>Status: ${s.status}`);
+        }
+      });
+    }
+
+    function selectShipment(id) {
+      activeShipmentId = id;
+      loadData();
+    }
+
+    function updateActiveShipmentUI(s) {
+      document.getElementById('statTemp').innerText = `${s.current_temp}°C`;
+      document.getElementById('statBounds').innerText = `Spec: ${s.min_temp}°C to ${s.max_temp}°C`;
+      document.getElementById('statMkt').innerText = `${s.mkt_temp}°C`;
+      document.getElementById('chartDevice').innerText = s.tracking_number;
+      document.getElementById('mapSub').innerText = `${s.payload_name} (${s.origin.split(',')[0]} to ${s.destination.split(',')[0]})`;
+
+      // Excursion banner check
+      const banner = document.getElementById('alertBanner');
+      if (s.status === 'AT_RISK' || s.current_temp > s.max_temp) {
+        banner.classList.remove('hidden');
+        document.getElementById('alertTitle').innerText = `CRITICAL EXCURSION: ${s.id} (${s.payload_name})`;
+        document.getElementById('alertDesc').innerText = `Temperature breached upper specification (${s.current_temp}°C vs threshold ${s.max_temp}°C). Re-icing advisory sent to driver.`;
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      // Update Chart
+      const history = s.history || [];
+      telemetryChart.data.labels = history.map(h => h.timestamp);
+      telemetryChart.data.datasets[0].data = history.map(h => h.temperature);
+      telemetryChart.data.datasets[1].data = history.map(h => h.ambient_temp);
+      telemetryChart.update();
+
+      // Draw route on map
+      if (polylineLayer) {
+        map.removeLayer(polylineLayer);
+      }
+      if (originMarker) {
+        map.removeLayer(originMarker);
+      }
+      if (destMarker) {
+        map.removeLayer(destMarker);
+      }
+
+      if (s.route_waypoints && s.route_waypoints.length > 0) {
+        const color = s.status === 'AT_RISK' ? '#ef4444' : '#2563eb';
+        polylineLayer = L.polyline(s.route_waypoints, { color: color, weight: 4.5, opacity: 0.85 }).addTo(map);
+        
+        // Add start and end hub pins
+        const startPt = s.route_waypoints[0];
+        const endPt = s.route_waypoints[s.route_waypoints.length - 1];
+        
+        originMarker = L.circleMarker(startPt, {
+          radius: 7,
+          color: '#16a34a',
+          fillColor: '#22c55e',
+          fillOpacity: 0.9,
+          weight: 2
+        }).addTo(map);
+        originMarker.bindPopup(`<b>Dispatch Hub:</b> ${s.origin}`);
+
+        destMarker = L.circleMarker(endPt, {
+          radius: 7,
+          color: '#b91c1c',
+          fillColor: '#ef4444',
+          fillOpacity: 0.9,
+          weight: 2
+        }).addTo(map);
+        destMarker.bindPopup(`<b>Receiving Depo:</b> ${s.destination}`);
+
+        // Zoom map to fit the full highway route
+        map.fitBounds(polylineLayer.getBounds(), { padding: [45, 45], maxZoom: 7 });
+      }
+    }
+
+    async function triggerExcursion() {
+      await fetch(`/api/shipments/${activeShipmentId}/trigger-excursion`, { method: 'POST' });
+      loadData();
+    }
+
+    async function resolveExcursion() {
+      await fetch(`/api/shipments/${activeShipmentId}/resolve-excursion`, { method: 'POST' });
+      loadData();
+    }
+
+    function downloadActivePdf() {
+      window.open(`/api/shipments/${activeShipmentId}/audit-pdf`, '_blank');
+    }
+
+    // Modal functions
+    function openAdvisoryModal() {
+      document.getElementById('advisoryModal').classList.remove('hidden');
+    }
+    function closeAdvisoryModal() {
+      document.getElementById('advisoryModal').classList.add('hidden');
+    }
+
+    async function calculateAdvisory() {
+      const btn = document.getElementById('calcBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<span>⏳ Simulating Corridor Weather...</span>`;
+      btn.disabled = true;
+
+      try {
+        const payload = {
+          origin: document.getElementById('advOrigin').value,
+          destination: document.getElementById('advDest').value,
+          payload_category: document.getElementById('advCategory').value,
+          insulation_hours: parseInt(document.getElementById('advInsulation').value) || 24
+        };
+
+        const res = await fetch('/api/advisory/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        const resultBox = document.getElementById('advResult');
+        resultBox.classList.remove('hidden');
+        document.getElementById('resScore').innerText = `${data.risk_score} / 100`;
+        document.getElementById('resRec').innerText = data.recommendation;
+        document.getElementById('resWindow').innerText = data.suggested_departure_window;
+        document.getElementById('resAmbient').innerText = `${data.corridor_max_ambient}°C`;
+
+        // Checkpoints
+        const cpList = document.getElementById('resCheckpoints');
+        cpList.innerHTML = '';
+        (data.cold_storage_checkpoints || []).forEach(cp => {
+          const li = document.createElement('li');
+          li.innerText = cp;
+          cpList.appendChild(li);
+        });
+
+        const badge = document.getElementById('resBadge');
+        badge.innerText = data.risk_level;
+        if (data.risk_score >= 70) {
+          badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800";
+        } else if (data.risk_score >= 40) {
+          badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800";
+        } else {
+          badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800";
+        }
+
+        // Dynamically draw the simulated highway route on the map
+        if (data.route_geometry && data.route_geometry.length > 0) {
+          if (polylineLayer) map.removeLayer(polylineLayer);
+          if (originMarker) map.removeLayer(originMarker);
+          if (destMarker) map.removeLayer(destMarker);
+
+          const rColor = data.risk_score >= 70 ? '#ef4444' : (data.risk_score >= 40 ? '#f59e0b' : '#10b981');
+          polylineLayer = L.polyline(data.route_geometry, { color: rColor, weight: 5, opacity: 0.9, dashArray: '6, 6' }).addTo(map);
+
+          originMarker = L.circleMarker(data.route_geometry[0], {
+            radius: 8, color: '#16a34a', fillColor: '#22c55e', fillOpacity: 1, weight: 2
+          }).addTo(map);
+          originMarker.bindPopup(`<b>Simulated Origin:</b> ${payload.origin}`);
+
+          destMarker = L.circleMarker(data.route_geometry[data.route_geometry.length - 1], {
+            radius: 8, color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 1, weight: 2
+          }).addTo(map);
+          destMarker.bindPopup(`<b>Simulated Destination:</b> ${payload.destination}`);
+
+          map.fitBounds(polylineLayer.getBounds(), { padding: [50, 50], maxZoom: 7 });
+        }
+      } catch (err) {
+        alert("Failed to compute advisory. Please check server status.");
+        console.error(err);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    async function dispatchNewShipment() {
+      try {
+        const payload = {
+          origin: document.getElementById('advOrigin').value,
+          destination: document.getElementById('advDest').value,
+          payload_category: document.getElementById('advCategory').value,
+          insulation_hours: parseInt(document.getElementById('advInsulation').value) || 24
+        };
+
+        const res = await fetch('/api/shipments/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const newShipment = await res.json();
+
+        // Switch to the newly dispatched shipment
+        activeShipmentId = newShipment.id;
+        closeAdvisoryModal();
+        await loadData();
+        alert(`Shipment ${newShipment.id} successfully dispatched! Now tracking live on the corridor map.`);
+      } catch (err) {
+        alert("Failed to dispatch shipment.");
+        console.error(err);
+      }
+    }
+
+    // Close on Escape or click outside
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAdvisoryModal();
+    });
+    document.getElementById('advisoryModal').addEventListener('click', (e) => {
+      if (e.target.id === 'advisoryModal') closeAdvisoryModal();
+    });
+
+    window.onload = () => {
+      initMap();
+      initChart();
+      loadData();
+      // Polling every 5 seconds
+      setInterval(loadData, 5000);
+    };
+  </script>
+</body>
+</html>

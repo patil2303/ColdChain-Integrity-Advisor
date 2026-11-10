@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product Requirements Document - Cold-Chain Integrity Advisory</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.55;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+  .header-cover {
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  .badge {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 8pt;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  h1 {
+    font-size: 20pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 8px 0 4px 0;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    font-size: 11pt;
+    color: #64748b;
+    margin: 0 0 12px 0;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 8.5pt;
+  }
+  .meta-item strong {
+    color: #475569;
+    display: block;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+  h2 {
+    font-size: 13pt;
+    color: #0f172a;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 6px;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 10.5pt;
+    color: #1e3a8a;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+  p {
+    margin: 0 0 10px 0;
+    color: #334155;
+  }
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 4px;
+    color: #334155;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 8.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+  }
+  td {
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+  .callout {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+    font-size: 9pt;
+  }
+  .callout strong {
+    color: #1e40af;
+  }
+  .workflow-box {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+  .step-card {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-top: 3px solid #2563eb;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 8pt;
+  }
+  .step-number {
+    font-weight: 800;
+    color: #2563eb;
+    font-size: 9pt;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .step-desc {
+    color: #64748b;
+    line-height: 1.35;
+  }
+  .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 7.5pt;
+    font-weight: 600;
+  }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .tag-purple { background: #f3e8ff; color: #6b21a8; }
+  .page-break {
+    page-break-before: always;
+  }
+  footer {
+    margin-top: 24px;
+    padding-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 7.5pt;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-cover">
+  <span class="badge">Engineering & Product Specification</span>
+  <h1>Supply Chain Cold-Chain Integrity Advisory</h1>
+  <div class="subtitle">Predictive Route Risk Engineering & Real-Time In-Transit Compliance Platform</div>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <strong>Document Version</strong>
+      v1.0 (MVP Specification)
+    </div>
+    <div class="meta-item">
+      <strong>Target Domain</strong>
+      Vaccines, Biopharma & Perishables
+    </div>
+    <div class="meta-item">
+      <strong>Compliance Standards</strong>
+      FDA 21 CFR Part 11 / WHO GDP
+    </div>
+    <div class="meta-item">
+      <strong>Status</strong>
+      Pending Senior Architecture Sign-off
+    </div>
+  </div>
+</div>
+
+<h2>1. Executive Summary & Problem Definition</h2>
+<p>
+  <strong>Context:</strong> Critical life-science payloads (vaccines, biologics, blood products) and perishable foods require uninterrupted temperature regulation during transit. A single temperature excursion (e.g., vaccines exceeding 2°C–8°C or thawing below -60°C) results in irreversible degradation, total loss of inventory, and heavy regulatory non-compliance fines.
+</p>
+<p>
+  <strong>Core Problem:</strong> Today's supply chains rely predominantly on <em>passive USB loggers</em> (discovered only at destination dock after goods are ruined) or generic GPS tracking systems that fail to calculate thermal risks, ambient en-route weather fluctuations, or refrigeration failure risks before dispatch.
+</p>
+<div class="callout">
+  <strong>Our Core Value Proposition:</strong> Unlike existing systems that merely report excursions <em>after</em> they happen, our <strong>Advisory Platform</strong> proactively models route weather, predicts thermal loss across transit corridors, and dynamically advises dispatchers on safe departure windows, alternate re-icing hubs, and contingency routing.
+</div>
+
+<h2>2. Comprehensive Competitor Benchmarking</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 15%;">Competitor</th>
+      <th style="width: 22%;">Target Market</th>
+      <th style="width: 20%;">Hardware Model</th>
+      <th style="width: 23%;">Strengths</th>
+      <th style="width: 20%;">Key Gaps & Vulnerabilities</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Controlant</strong></td>
+      <td>Tier 1 Pharma & Vaccine Distribution (Pfizer Partner)</td>
+      <td>Proprietary cellular/5G multi-use loggers (Saga Card)</td>
+      <td>Deep compliance pedigree, reverse logistics, end-to-end automation.</td>
+      <td>Prohibitive hardware lock-in costs; cumbersome onboarding for mid-market fleets.</td>
+    </tr>
+    <tr>
+      <td><strong>Roambee</strong></td>
+      <td>Multimodal enterprise supply chain (Food & Pharma)</td>
+      <td>BLE beacons swarm + cellular gateway (BeeSens)</td>
+      <td>Condition analytics, dynamic ETA, item-level tracking.</td>
+      <td>Complex UI; steep learning curve; requires significant custom integration.</td>
+    </tr>
+    <tr>
+      <td><strong>Sensitech (Carrier)</strong></td>
+      <td>Global Life Sciences & Cold Storage</td>
+      <td>TempTale loggers (USB & Real-time cellular)</td>
+      <td>Massive global pharmaceutical footprint and proven audit history.</td>
+      <td>Legacy UX/UI; siloed data architectures; closed API ecosystem.</td>
+    </tr>
+    <tr>
+      <td><strong>Tive</strong></td>
+      <td>Multi-industry visibility (Pharma, Food, High Value)</td>
+      <td>Single-use / Multi-use 5G Trackers (TT-7000)</td>
+      <td>Ultra-clean modern portal; multi-sensor (Temp, Humidity, Shock, Light).</td>
+      <td>Primarily passive tracking; lacks pre-trip route climate modeling & advisory.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. User Workflow Architecture</h2>
+<div class="workflow-box">
+  <div class="step-card">
+    <div class="step-number">STEP 01</div>
+    <div class="step-title">Route Risk Advisory</div>
+    <div class="step-desc">Dispatcher enters origin, destination, payload thermal requirements, and packaging insulation life.</div>
+  </div>
+  <div class="step-card">
+    <div class="step-number">STEP 02</div>
+    <div class="step-title">Ambient Risk Modeling</div>
+    <div class="step-desc">Engine computes thermal exposure along the route corridor using hourly weather forecast APIs.</div>
+  </div>
+  <div class="step-card">
+    <div class="step-number">STEP 03</div>
+    <div class="step-title">Live IoT Telemetry</div>
+    <div class="step-desc">Truck/Container transmits live GPS, temperature, humidity, and door-opening state every 60s.</div>
+  </div>
+  <div class="step-card">
+    <div class="step-number">STEP 04</div>
+    <div class="step-title">Excursion Alerts</div>
+    <div class="step-desc">Instant SMS/email triggers if temperature breaches upper/lower limit or MKT degrades.</div>
+  </div>
+  <div class="step-card">
+    <div class="step-number">STEP 05</div>
+    <div class="step-title">Audit Certificate</div>
+    <div class="step-desc">Generates immutable FDA 21 CFR Part 11 compliant PDF report with time-series charts on delivery.</div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>4. MVP Functional Requirements Scope</h2>
+
+<h3>Module 1: Pre-Transit Route & Risk Advisory Engine</h3>
+<ul>
+  <li><strong>Payload Profile Catalog:</strong> Pre-configured temperature bands:
+    <ul>
+      <li><span class="tag tag-purple">Ultra-Cold:</span> -80°C to -60°C (mRNA vaccines, dry ice).</li>
+      <li><span class="tag tag-blue">Refrigerated (Cold Chain):</span> 2°C to 8°C (biologics, insulin, lab specimens).</li>
+      <li><span class="tag tag-green">Controlled Room Temp (CRT):</span> 15°C to 25°C (standard pharma).</li>
+      <li><span class="tag tag-amber">Frozen Foods:</span> -20°C to -10°C (seafood, poultry, dairy).</li>
+    </ul>
+  </li>
+  <li><strong>Corridor Climate Prediction:</strong> Samples ambient temperatures at 50-mile waypoints along driving directions. Warns if ambient heat exceeds container thermal resistance rating.</li>
+  <li><strong>Advisory Risk Scoring:</strong> Generates a composite 0–100 Risk Index (Low, Moderate, Critical) factoring in transit duration, weather anomalies, and refrigerated rest-stop availability.</li>
+</ul>
+
+<h3>Module 2: Real-Time In-Transit Telemetry Ingestion</h3>
+<ul>
+  <li><strong>Hardware-Agnostic Telemetry API:</strong> Lightweight REST/MQTT endpoint accepting JSON payloads:
+    <pre style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 4px; font-size: 7.5pt; color: #0f172a;">
+{
+  "device_id": "SN-8921-A",
+  "shipment_id": "SHP-2026-098",
+  "timestamp": "2026-11-10T08:30:00Z",
+  "location": { "lat": 33.7490, "lng": -84.3880 },
+  "telemetry": {
+    "temperature_celsius": 4.2,
+    "humidity_rh": 48.5,
+    "battery_pct": 94,
+    "door_open": false,
+    "shock_detected": false
+  }
+}</pre>
+  </li>
+  <li><strong>Interactive Live Tracking Map:</strong> Shows route polyline color-coded in real-time (Green = Within Specs, Red = Excursion Occurring).</li>
+</ul>
+
+<h3>Module 3: Excursion Detection & Mean Kinetic Temperature (MKT)</h3>
+<ul>
+  <li><strong>Threshold Breach Triggers:</strong> Flags warning if temperature drifts within 1°C of limit, and critical excursion if limit is breached continuously for &gt; 15 minutes.</li>
+  <li><strong>Automated MKT Calculation:</strong> Continuously computes Mean Kinetic Temperature according to the Arrhenius equation to calculate true biochemical degradation over time.</li>
+  <li><strong>Multi-Channel Alert Dispatcher:</strong> Sends instant alerts via SMS, Webhook, and In-App notification with direct emergency response instructions.</li>
+</ul>
+
+<h3>Module 4: Regulatory Compliance & Audit Reports</h3>
+<ul>
+  <li><strong>One-Click Trip Audit Certificate:</strong> PDF export featuring time-series charts, complete temperature log table, excursion durations, and carrier sign-off lines.</li>
+  <li><strong>Data Integrity & Audit Log:</strong> Immutable audit logs conforming to <strong>FDA 21 CFR Part 11</strong> and <strong>WHO GDP Annex 5</strong> with tamper-evident SHA-256 hash validation.</li>
+</ul>
+
+<h2>5. Technical Architecture & Non-Functional Specifications</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Layer</th>
+      <th style="width: 35%;">Recommended Technology</th>
+      <th style="width: 40%;">Architectural Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Frontend UI</strong></td>
+      <td>Next.js 14 / React + Tailwind CSS + Mapbox GL</td>
+      <td>Responsive operations dashboard, live polyline rendering, telemetry charting.</td>
+    </tr>
+    <tr>
+      <td><strong>Backend Services</strong></td>
+      <td>FastAPI (Python) or NestJS (Node.js)</td>
+      <td>Fast asynchronous telemetry ingestion, route calculation, and notification dispatch.</td>
+    </tr>
+    <tr>
+      <td><strong>Time-Series Database</strong></td>
+      <td>PostgreSQL + TimescaleDB Extension</td>
+      <td>Optimized for high-frequency time-series telemetry data + relational business logic.</td>
+    </tr>
+    <tr>
+      <td><strong>Telemetry Simulator</strong></td>
+      <td>Python Field Simulator Script</td>
+      <td>Generates realistic truck journeys with simulated ambient fluctuations for staging & demos.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6. 4-Week MVP Implementation Timeline</h2>
+<ul>
+  <li><strong>Week 1 (Data Foundation):</strong> Schema design (Postgres), Telemetry ingestion REST API, and Mock IoT hardware generator.</li>
+  <li><strong>Week 2 (Routing & Advisory):</strong> Route calculation API + weather forecast integration + Route Risk Index calculation algorithm.</li>
+  <li><strong>Week 3 (Live Operations UI):</strong> Interactive map view, live sensor chart updates via WebSockets, and real-time excursion alerting.</li>
+  <li><strong>Week 4 (Compliance & PDF Engine):</strong> PDF compliance certificate generator, audit trail verification, end-to-end demo hardening.</li>
+</ul>
+
+<footer>
+  <span>Confidential & Proprietary — Cold-Chain Integrity Advisory Platform</span>
+  <span>Document Ref: CC-PRD-2026-V1</span>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Generated test / temporary PDFs
+server/test_audit.pdf
+server/Audit_Cert_*.pdf
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.log
