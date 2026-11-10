@@ -1,8 +1,10 @@
 import os
 import sys
 import tempfile
+import random
 import asyncio
 from typing import List
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,11 +18,16 @@ from models import Shipment, RouteAdvisoryRequest, RouteAdvisoryResponse
 from simulator import DATABASE, tick_simulation, create_new_shipment
 from advisory_engine import evaluate_route_risk
 
-# Embed dashboard HTML directly in Python for zero file-system dependency
+# Embed dashboard and landing page HTML directly in Python for zero file-system dependency
 try:
     from dashboard_html import INDEX_HTML
 except ImportError:
-    INDEX_HTML = "<h1>Cold-Chain Advisory API Running</h1>"
+    INDEX_HTML = "<h1>Cold-Chain Operations Tower Running</h1>"
+
+try:
+    from landing_html import LANDING_HTML
+except ImportError:
+    LANDING_HTML = "<h1>Cold-Chain Customer Onboarding Portal</h1>"
 
 app = FastAPI(
     title="Cold-Chain Integrity Advisory Platform API",
@@ -47,6 +54,34 @@ if not os.environ.get("VERCEL"):
                 tick_simulation()
 
         asyncio.create_task(simulation_worker())
+
+# ----------------- ONBOARDING SCHEMA & ENDPOINT -----------------
+
+class OnboardingRequest(BaseModel):
+    organization_name: str
+    sector: str
+    contact_person: str
+    email: str
+    origin_hub: str
+    destination_hub: str
+    temp_band: str
+    hardware_type: str
+    phone_number: str
+    compliance_standard: str
+
+@app.post("/api/onboard")
+def handle_onboarding(request: OnboardingRequest):
+    """Processes customer onboarding submissions and provisions their workspace."""
+    client_id = f"CLT-IND-{random.randint(1000, 9999)}"
+    return {
+        "status": "PROVISIONED",
+        "client_id": client_id,
+        "organization_name": request.organization_name,
+        "sector": request.sector,
+        "origin_hub": request.origin_hub,
+        "destination_hub": request.destination_hub,
+        "message": "Enterprise workspace provisioned successfully on the National Cold-Chain Network."
+    }
 
 # ----------------- REST ENDPOINTS -----------------
 
@@ -122,8 +157,17 @@ def download_audit_pdf(shipment_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
+# ----------------- PAGE ROUTES -----------------
+
 @app.get("/", response_class=HTMLResponse)
-def serve_dashboard():
+def serve_landing_page():
+    """Serves the Customer Onboarding Landing Page."""
+    return HTMLResponse(content=LANDING_HTML)
+
+@app.get("/operations", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
+def serve_operations_tower():
+    """Serves the Live Operations Tower (Map & Telemetry)."""
     return HTMLResponse(content=INDEX_HTML)
 
 if __name__ == "__main__":
