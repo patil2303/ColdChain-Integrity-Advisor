@@ -6,6 +6,8 @@ __pycache__/
 # Generated test / temporary PDFs
 server/test_audit.pdf
 server/Audit_Cert_*.pdf
+test_audit.pdf
+Audit_Cert_*.pdf
 
 # Virtual Environments
 .venv/

@@ -44,17 +44,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Background simulation runner (only in persistent dev server, not on Vercel serverless)
-if not os.environ.get("VERCEL"):
-    @app.on_event("startup")
-    async def start_simulation_loop():
-        async def simulation_worker():
-            while True:
-                await asyncio.sleep(4)
-                tick_simulation()
-
-        asyncio.create_task(simulation_worker())
-
 # ----------------- ONBOARDING SCHEMA & ENDPOINT -----------------
 
 class OnboardingRequest(BaseModel):
