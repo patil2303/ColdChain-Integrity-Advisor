@@ -1,10 +1,17 @@
 import os
+import sys
+import tempfile
 import asyncio
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+# Ensure server directory is in sys.path for relative imports on Vercel / serverless
+server_dir = os.path.dirname(os.path.abspath(__file__))
+if server_dir not in sys.path:
+    sys.path.insert(0, server_dir)
 
 from models import Shipment, RouteAdvisoryRequest, RouteAdvisoryResponse
 from simulator import DATABASE, tick_simulation, create_new_shipment
@@ -41,6 +48,7 @@ async def start_simulation_loop():
 @app.get("/api/shipments", response_model=List[Shipment])
 def get_shipments():
     """Retrieve all actively monitored cold-chain shipments."""
+    tick_simulation()
     return list(DATABASE.values())
 
 @app.get("/api/shipments/{shipment_id}", response_model=Shipment)
@@ -97,7 +105,7 @@ def download_audit_pdf(shipment_id: str):
     
     shipment = DATABASE[shipment_id]
     pdf_filename = f"Audit_Cert_{shipment_id}.pdf"
-    pdf_path = os.path.join("D:/Internship/server", pdf_filename)
+    pdf_path = os.path.join(tempfile.gettempdir(), pdf_filename)
     
     generate_shipment_audit_pdf(shipment, pdf_path)
     
