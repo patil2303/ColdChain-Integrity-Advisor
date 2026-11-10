@@ -4,7 +4,6 @@ import tempfile
 import asyncio
 from typing import List
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,7 +15,12 @@ if server_dir not in sys.path:
 from models import Shipment, RouteAdvisoryRequest, RouteAdvisoryResponse
 from simulator import DATABASE, tick_simulation, create_new_shipment
 from advisory_engine import evaluate_route_risk
-from compliance_pdf import generate_shipment_audit_pdf
+
+# Embed dashboard HTML directly in Python for zero file-system dependency
+try:
+    from dashboard_html import INDEX_HTML
+except ImportError:
+    INDEX_HTML = "<h1>Cold-Chain Advisory API Running</h1>"
 
 app = FastAPI(
     title="Cold-Chain Integrity Advisory Platform API",
@@ -24,7 +28,7 @@ app = FastAPI(
     description="Real-Time Cold Chain Telemetry, Risk Advisory, and Compliance Engine"
 )
 
-# Enable CORS for local development
+# Enable CORS for local development and Vercel domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -104,46 +108,23 @@ def download_audit_pdf(shipment_id: str):
     if shipment_id not in DATABASE:
         raise HTTPException(status_code=404, detail="Shipment not found")
     
-    shipment = DATABASE[shipment_id]
-    pdf_filename = f"Audit_Cert_{shipment_id}.pdf"
-    pdf_path = os.path.join(tempfile.gettempdir(), pdf_filename)
-    
-    generate_shipment_audit_pdf(shipment, pdf_path)
-    
-    return FileResponse(
-        pdf_path,
-        media_type="application/pdf",
-        filename=pdf_filename
-    )
-
-# Static UI serving
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-INDEX_HTML_CACHE = ""
-
-def load_index_html():
-    global INDEX_HTML_CACHE
-    if INDEX_HTML_CACHE:
-        return INDEX_HTML_CACHE
-    
-    candidates = [
-        os.path.join(os.path.dirname(__file__), "static", "index.html"),
-        os.path.join(os.getcwd(), "server", "static", "index.html"),
-        os.path.join(os.getcwd(), "static", "index.html"),
-        os.path.abspath("server/static/index.html")
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            with open(p, "r", encoding="utf-8") as f:
-                INDEX_HTML_CACHE = f.read()
-                return INDEX_HTML_CACHE
-    return "<h1>Cold-Chain Advisory API Running</h1>"
+    try:
+        from compliance_pdf import generate_shipment_audit_pdf
+        shipment = DATABASE[shipment_id]
+        pdf_filename = f"Audit_Cert_{shipment_id}.pdf"
+        pdf_path = os.path.join(tempfile.gettempdir(), pdf_filename)
+        generate_shipment_audit_pdf(shipment, pdf_path)
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=pdf_filename
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
 @app.get("/", response_class=HTMLResponse)
 def serve_dashboard():
-    return load_index_html()
+    return HTMLResponse(content=INDEX_HTML)
 
 if __name__ == "__main__":
     import uvicorn
